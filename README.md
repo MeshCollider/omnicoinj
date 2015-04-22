@@ -1,6 +1,7 @@
-<div align="center"><h1>Welcome to <b>OmnicoinJ</b></h1></div>
+<div align="center"><h1>Welcome to <b>OmnicoinJ for MultiBit</b></h1></div>
 
-<div align="center">A Java implementation of the Omnicoin protocol</div>
+<div align="center">A Java implementation of the Omnicoin protocol, legacy version for use with OmniLite.</div>
+<div align="center">version: `0.11.2-MB-ALICE`</div>
 
 
 <div align="center"><img src="https://encrypted-tbn3.gstatic.com/images?q=tbn:ANd9GcT5cGH94w6MbLPaBojOdBAVmPM9pbqJm3LIn2gNd4tPKd1F8qbgmg" /></div>
