@@ -165,35 +165,5 @@ public class CheckpointManager {
         StoredBlock checkpoint = manager.getCheckpointBefore(time);
         store.put(checkpoint);
         store.setChainHead(checkpoint);
-		//if(checkpoint.getHeight() < CoinDefinition.DIFF_FILTER_THRESHOLD)
-        //{
-            //store.put(checkpoint);
-            //store.setChainHead(checkpoint);
-        //}
-        //else
-        //{
-            /*for(Map.Entry<Long,StoredBlock> entry : manager.checkpoints.entrySet()) {
-                long key = entry.getKey();
-                StoredBlock value = entry.getValue();
-
-
-            }*/
-          /*  java.util.Set keys = manager.checkpoints.keySet();
-            int endheight = checkpoint.getHeight();
-            int startheight = 0;
-            if(endheight < CoinDefinition.nDifficultySwitchHeightTwo)
-                startheight = endheight - 144;
-            else startheight = endheight - 4032;
-            for (java.util.Iterator i = keys.iterator(); i.hasNext();) {
-                Long key = (Long) i.next();
-                StoredBlock value = (StoredBlock) manager.checkpoints.get(key);
-                if(value.getHeight() >= startheight && key < time)
-                    store.put(value);
-                //System.out.println(key + " = " + value);
-            }
-            store.put(checkpoint);
-            store.setChainHead(checkpoint);
-
-        }*/
     }
 }

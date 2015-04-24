@@ -1,14 +1,12 @@
 package com.google.bitcoin.core;
 
 import java.math.BigInteger;
-import java.util.Date;
 import java.util.Map;
-import java.util.Vector;
 
 /**
  * Created with IntelliJ IDEA.
  * User: HashEngineering
- * Date: 8/13/13
+ * Date: 5/19/2014
  * Time: 7:23 PM
  * To change this template use File | Settings | File Templates.
  */
@@ -18,12 +16,9 @@ public class CoinDefinition {
     public static final String coinName = "omnicoin";
     public static final String coinTicker = "OMC";
     public static final String coinURIScheme = "omnicoin";
-    public static final String cryptsyMarketId = "672"; //cryptsy doesnt currently support OMC. Allcrypt: 672, modified exchangeratesprovider in omnicoin-wallet
+    public static final String cryptsyMarketId = "672";
     public static final String cryptsyMarketCurrency = "BTC";
     public static final String PATTERN_PRIVATE_KEY_START = "d";
-    public static final String PATTERN_PRIVATE_KEY_START_COMPRESSED = "[cd]";
-    public static final String PATTERN_PRIVATE_KEY_START_TESTNET = "";
-    public static final String PATTERN_PRIVATE_KEY_START_COMPRESSED_TESTNET = "";
 
     public static String lowerCaseCoinName() { return coinName.toLowerCase(); }
 
@@ -40,22 +35,8 @@ public class CoinDefinition {
     public static final String BLOCKEXPLORER_BLOCK_PATH = "?block=";                 //blockr.io path
     public static final String BLOCKEXPLORER_BASE_URL_TEST = BLOCKEXPLORER_BASE_URL_PROD;
 
-    public static final String DONATION_ADDRESS = "oMeshU9A7psVWNajjzdogeaRmY2xaGMuRA";  //MeshColliders OMC donation address
+    public static final String DONATION_ADDRESS = "oMeshU9A7psVWNajjzdogeaRmY2xaGMuRA";  //HashEngineering donation DGC address
 
-	/*
-	SWEEPING WALLETS
-
-	For sweeping wallets, Bitcoin Wallet uses an API by biteasy to query for unspent transaction
-	outputs:
-	https://api.biteasy.com/blockchain/v1/unspent-outputs
-	*/
-   public static final String UNSPENT_API_URL = "https://omnicha.in/api/v1/address/unspent/";
-   public enum UnspentAPIType {
-	BitEasy,
-	Blockr,
-	Abe
-    };
-	
     enum CoinHash {
         SHA256,
         scrypt,
@@ -63,18 +44,17 @@ public class CoinDefinition {
     public static final CoinHash coinPOWHash = CoinHash.scrypt;
 
     public static boolean checkpointFileSupport = true;
-    public static int checkpointDaysBack = 21;
     //Original Values
     public static final int TARGET_TIMESPAN_0 = (int)(6 * 60 * 3 * 20);  // 3.5 days per difficulty cycle, on average.
     public static final int TARGET_SPACING_0 = (int)(3 * 60);  // 180 seconds per block.
     public static final int INTERVAL_0 = TARGET_TIMESPAN_0 / TARGET_SPACING_0;  //1080 blocks
 
     public static final int TARGET_TIMESPAN_1 = (int)(108 * 20);  // 36 minutes per difficulty cycle, on average.
-    public static final int TARGET_SPACING_1 = (int)(3 * 60);  // 20 seconds per block.
+    public static final int TARGET_SPACING_1 = (int)(3 * 60);  // 180 seconds per block.
     public static final int INTERVAL_1 = TARGET_TIMESPAN_1 / TARGET_SPACING_1;  //108 blocks
 
-    public static final int TARGET_TIMESPAN = (int)(4 * 60 * 40);  // 4 hours per difficulty cycle, on average.
-    public static final int TARGET_SPACING = (int)(3 * 60);   // 180 seconds per block.
+    public static final int TARGET_TIMESPAN = (int)(4 * 60 * 40);  // 4 hourse per difficulty cycle, on average.
+    public static final int TARGET_SPACING = (int)(3 * 60);  // 180 seconds per block.
     public static final int INTERVAL = TARGET_TIMESPAN / TARGET_SPACING;  //108 blocks
 
     private static int nDifficultySwitchHeight = 476280;    //retarget every 108 instead of 1080 blocks; adjust by +100%/-50% instead of +400/-75%
@@ -92,7 +72,7 @@ public class CoinDefinition {
             return INTERVAL;      //108
     }
     public static final int getIntervalCheckpoints() {
-            return INTERVAL_0;    //1080
+            return INTERVAL_0 *2;    //1080
 
     }
     public static final int getTargetTimespan(int height, boolean testNet) {
@@ -125,7 +105,7 @@ public class CoinDefinition {
     public static final BigInteger MAX_MONEY = BigInteger.valueOf(13371337).multiply(Utils.COIN);                 //main.h:  MAX_MONEY
     //public static final String MAX_MONEY_STRING = "13371337";     //main.h:  MAX_MONEY
 
-    public static final BigInteger DEFAULT_MIN_TX_FEE = BigInteger.valueOf(10000000);   // MIN_TX_FEE
+    public static final BigInteger DEFAULT_MIN_TX_FEE = BigInteger.valueOf(100000);   // MIN_TX_FEE
     public static final BigInteger DUST_LIMIT = Utils.CENT; //main.h CTransaction::GetMinFee        0.01 coins
 
     public static final int PROTOCOL_VERSION = 80007;          //version.h PROTOCOL_VERSION
@@ -140,24 +120,15 @@ public class CoinDefinition {
         return PROTOCOL_VERSION <= 70000;
     }
 
-    public static final int Port    = 4872;       //protocol.h GetDefaultPort(testnet=false) 43555? "14872 (P2P) and 14873 (RPC)"
-    public static final int TestPort = 14872;     //protocol.h GetDefaultPort(testnet=true) 43557?
-    //RPC PORTS FROM bitcoinrpc.cpp 33812 : 4873;
-    //PORTS FROM protocol.h  return testnet ? 33813 : 4872;
-    //PORTS FROM init.cpp    default: 33813 or testnet: 4872     RPCPORT default: 33812 or testnet: 4873
-    /*
-    P2P: 4872
-    RPC: 4873
-    Put a 1 in front of them, and you get the testnet port. (14872, 14873).
-    */
-    
+    public static final int Port    = 4872;       //protocol.h GetDefaultPort(testnet=false)
+    public static final int TestPort = 14872;     //protocol.h GetDefaultPort(testnet=true)
 
     //
     //  Production
     //
     public static final int AddressHeader = 115;             //base58.h CBitcoinAddress::PUBKEY_ADDRESS
     public static final int p2shHeader = 5;             //base58.h CBitcoinAddress::SCRIPT_ADDRESS
-    public static final boolean allowBitcoinPrivateKey = true; //for backward compatibility with previous version of omnicoin
+    public static final boolean allowBitcoinPrivateKey = true; //for backward compatibility with previous version of digitalcoin
     public static final long PacketMagic = 0xd4cba1ef;      //0xd4, 0xcb, 0xa1, 0xef
 
     //Genesis Block Information from main.cpp: LoadBlockIndex
@@ -167,12 +138,12 @@ public class CoinDefinition {
     static public String genesisHash = "721abe3814e15f1ab50514c8b7fffa7578c1f35aa915275ee91f4cb8d02be5c4"; //main.cpp: hashGenesisBlock
     static public int genesisBlockValue = 88;                                                              //main.cpp: LoadBlockIndex
     //taken from the raw data of the block explorer
-    static public String genesisTxInBytes = "35e6a0e897ed76cd5f08b75d118fb7c99aec7cdd297b96c21dc6671d2034c953";  //??? //"Omnicoin, A Currency for a Digital Age"
+    static public String genesisTxInBytes = "35e6a0e897ed76cd5f08b75d118fb7c99aec7cdd297b96c21dc6671d2034c953";   //"Digitalcoin, A Currency for a Digital Age"
     static public String genesisTxOutBytes = "040184710fa689ad5023690c80f3a49c8f13f8d45b8c857fbcbc8bc4a8e4d3eb4b10f4d4604fa08dce601aaf0f470216fe1b51850b4acf21b179c45070ac7b03a9";
 
     //net.cpp strDNSSeed
     static public String[] dnsSeeds = new String[] {
-        "192.99.42.206",
+            "192.99.42.206",
         "192.99.42.164",
         "192.99.15.174",
 		"198.100.155.225",
@@ -198,8 +169,7 @@ public class CoinDefinition {
     static public long testnetGenesisBlockNonce = (99999);                         //main.cpp: LoadBlockIndex
 
 
-
-    public static BigInteger startDifficulty = Utils.decodeCompactBits(0x1d3fffff);
+	public static BigInteger startDifficulty = Utils.decodeCompactBits(0x1d3fffff);
 
 
     public static final boolean usingNewDifficultyProtocol(int height)
@@ -265,7 +235,6 @@ public class CoinDefinition {
           "not supported"
     };
     //from main.h: CAlert::CheckSignature
-    //public static final String SATOSHI_KEY = ""; //"040182710fa6892d5023690c80f3a49c8f13f8d45b8c857fbcbc8bc4a8e4d3eb4b10f4d4604fa08dce601aaf0f470216fe1b51850b4acf21b179c45070ac7b03a9";
     public static final String SATOSHI_KEY = "040182710fa6892d5023690c80f3a49c8f13f8d45b8c857fbcbc8bc4a8e4d3eb4b10f4d4604fa08dce601aaf0f470216fe1b51850b4acf21b179c45070ac7b03a9";
     public static final String TESTNET_SATOSHI_KEY = "04302290343f912c401d56d68b123028bf52e5fca1939df127f63c6467cdf9c8e2c14b61104cf817d0b780da337893ecc4aaff1309e536162dabbdb45200ca2b0a";
 
@@ -279,7 +248,7 @@ public class CoinDefinition {
     //checkpoints.cpp Checkpoints::mapCheckpoints
     public static void initCheckpoints(Map<Integer, Sha256Hash> checkpoints)
     {
-        checkpoints.put( 0, new Sha256Hash("721abe3814e15f1ab50514c8b7fffa7578c1f35aa915275ee91f4cb8d02be5c4"));
+checkpoints.put( 0, new Sha256Hash("721abe3814e15f1ab50514c8b7fffa7578c1f35aa915275ee91f4cb8d02be5c4"));
         checkpoints.put( 1, new Sha256Hash("e4a260c77abf60959a6be3f2058039fe12cb9be924b4be9fe12c95d9133b73ec"));
         checkpoints.put( 20, new Sha256Hash("b83b8d949773f345b71f3380d5ac21e20d845a92502abb6a18a1d0f2ebf97ef3"));
         checkpoints.put( 3500, new Sha256Hash("9197cc7b26e68454de896d174ea10e604b83e060499cd340c3ef38a03de220a6"));

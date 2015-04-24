@@ -1,6 +1,5 @@
 /**
  * Copyright 2013 Jim Burton.
- * Copyright 2014 Andreas Schildbach
  *
  * Licensed under the MIT license (the "License");
  * you may not use this file except in compliance with the License.
@@ -72,34 +71,16 @@ public class KeyCrypterScrypt implements KeyCrypter, Serializable {
 
     private static final transient SecureRandom secureRandom = new SecureRandom();
 
-    private static byte[] randomSalt() {
-        byte[] salt = new byte[SALT_LENGTH];
-        secureRandom.nextBytes(salt);
-        return salt;
-    }
-
     // Scrypt parameters.
     private final transient ScryptParameters scryptParameters;
 
     /**
-     * Encryption/Decryption using default parameters and a random salt.
+     * Encryption/ Decryption using default parameters and a random salt
      */
     public KeyCrypterScrypt() {
-        Protos.ScryptParameters.Builder scryptParametersBuilder = Protos.ScryptParameters.newBuilder().setSalt(
-                ByteString.copyFrom(randomSalt()));
-        this.scryptParameters = scryptParametersBuilder.build();
-    }
-
-    /**
-     * Encryption/Decryption using custom number of iterations parameters and a random salt. A useful value for mobile
-     * devices is 512 (~500 ms).
-     *
-     * @param iterations
-     *            number of scrypt iterations
-     */
-    public KeyCrypterScrypt(int iterations) {
-        Protos.ScryptParameters.Builder scryptParametersBuilder = Protos.ScryptParameters.newBuilder()
-                .setSalt(ByteString.copyFrom(randomSalt())).setN(iterations);
+        byte[] salt = new byte[SALT_LENGTH];
+        secureRandom.nextBytes(salt);
+        Protos.ScryptParameters.Builder scryptParametersBuilder = Protos.ScryptParameters.newBuilder().setSalt(ByteString.copyFrom(salt));
         this.scryptParameters = scryptParametersBuilder.build();
     }
 

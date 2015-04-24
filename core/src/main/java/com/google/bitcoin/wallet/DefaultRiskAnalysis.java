@@ -22,8 +22,6 @@ import com.google.bitcoin.core.Transaction;
 import com.google.bitcoin.core.TransactionConfidence;
 import com.google.bitcoin.core.TransactionOutput;
 import com.google.bitcoin.core.Wallet;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
@@ -33,13 +31,10 @@ import java.util.List;
 import static com.google.common.base.Preconditions.checkState;
 
 /**
- * <p>The default risk analysis. Currently, it only is concerned with whether a tx/dependency is non-final or not, and
- * whether a tx/dependency violates the dust rules. Outside of specialised protocols you should not encounter non-final
- * transactions.</p>
+ * The default risk analysis. Currently, it only is concerned with whether a tx/dependency is non-final or not. Outside
+ * of specialised protocols you should not encounter non-final transactions.
  */
 public class DefaultRiskAnalysis implements RiskAnalysis {
-    private static final Logger log = LoggerFactory.getLogger(DefaultRiskAnalysis.class);
-
     /**
      * Any standard output smaller than this value (in satoshis) will be considered risky, as it's most likely be
      * rejected by the network. Currently it's 546 satoshis. This is different from {@link Transaction#MIN_NONDUST_OUTPUT}
@@ -97,14 +92,21 @@ public class DefaultRiskAnalysis implements RiskAnalysis {
         return Result.OK;
     }
 
-    /**
-     * The reason a transaction is considered non-standard, returned by
-     * {@link #isStandard(com.google.bitcoin.core.Transaction)}.
-     */
-    public enum RuleViolation {
-        NONE,
-        VERSION,
-        DUST
+    private Result analyzeIsStandard() {
+        if (!wallet.getNetworkParameters().getId().equals(NetworkParameters.ID_MAINNET))
+            return Result.OK;
+
+        nonStandard = isStandard(tx);
+        if (nonStandard != null)
+            return Result.NON_STANDARD;
+
+        for (Transaction dep : dependencies) {
+            nonStandard = isStandard(dep);
+            if (nonStandard != null)
+                return Result.NON_STANDARD;
+        }
+
+        return Result.OK;
     }
 
     /**
@@ -112,47 +114,19 @@ public class DefaultRiskAnalysis implements RiskAnalysis {
      * functions.</p>
      *
      * <p>Note that this method currently only implements a minimum of checks. More to be added later.</p>
+     *
+     * @return Either null if the transaction is standard, or the first transaction found which is considered nonstandard
      */
-    public static RuleViolation isStandard(Transaction tx) {
-        // TODO: Finish this function off.
-        if (tx.getVersion() > 1 || tx.getVersion() < 1) {
-            log.warn("TX considered non-standard due to unknown version number {}", tx.getVersion());
-            return RuleViolation.VERSION;
+    public Transaction isStandard(Transaction tx) {
+        if (tx.getVersion() > 1 || tx.getVersion() < 1)
+            return tx;
+
+        for (TransactionOutput output : tx.getOutputs()) {
+            if (MIN_ANALYSIS_NONDUST_OUTPUT.compareTo(output.getValue()) > 0)
+                return tx;
         }
 
-        final List<TransactionOutput> outputs = tx.getOutputs();
-        for (int i = 0; i < outputs.size(); i++) {
-            TransactionOutput output = outputs.get(i);
-            if (MIN_ANALYSIS_NONDUST_OUTPUT.compareTo(output.getValue()) > 0) {
-                log.warn("TX considered non-standard due to output {} being dusty", i);
-                return RuleViolation.DUST;
-            }
-        }
-
-        return RuleViolation.NONE;
-    }
-
-    private Result analyzeIsStandard() {
-        // The IsStandard rules don't apply on testnet, because they're just a safety mechanism and we don't want to
-        // crush innovation with valueless test coins.
-        if (!wallet.getNetworkParameters().getId().equals(NetworkParameters.ID_MAINNET))
-            return Result.OK;
-
-        RuleViolation ruleViolation = isStandard(tx);
-        if (ruleViolation != RuleViolation.NONE) {
-            nonStandard = tx;
-            return Result.NON_STANDARD;
-        }
-
-        for (Transaction dep : dependencies) {
-            ruleViolation = isStandard(dep);
-            if (ruleViolation != RuleViolation.NONE) {
-                nonStandard = dep;
-                return Result.NON_STANDARD;
-            }
-        }
-
-        return Result.OK;
+        return null;
     }
 
     /** Returns the transaction that was found to be non-standard, or null. */

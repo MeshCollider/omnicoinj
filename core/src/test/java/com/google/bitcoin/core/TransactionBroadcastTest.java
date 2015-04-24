@@ -1,6 +1,5 @@
 /**
  * Copyright 2013 Google Inc.
- * Copyright 2014 Andreas Schildbach
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,8 +18,7 @@ package com.google.bitcoin.core;
 
 import com.google.bitcoin.params.UnitTestParams;
 import com.google.bitcoin.store.MemoryBlockStore;
-import com.google.bitcoin.testing.FakeTxBuilder;
-import com.google.bitcoin.testing.InboundMessageQueuer;
+import com.google.bitcoin.utils.TestUtils;
 import com.google.bitcoin.utils.Threading;
 import com.google.common.util.concurrent.ListenableFuture;
 import org.junit.After;
@@ -60,15 +58,13 @@ public class TransactionBroadcastTest extends TestWithPeerGroup {
         // Fix the random permutation that TransactionBroadcast uses to shuffle the peers.
         TransactionBroadcast.random = new Random(0);
         peerGroup.setMinBroadcastConnections(2);
-        peerGroup.startAsync();
-        peerGroup.awaitRunning();
+        peerGroup.startAndWait();
     }
 
     @After
     public void tearDown() throws Exception {
         super.tearDown();
-        peerGroup.stopAsync();
-        peerGroup.awaitTerminated();
+        peerGroup.stopAndWait();
     }
 
     @Test
@@ -94,6 +90,7 @@ public class TransactionBroadcastTest extends TestWithPeerGroup {
         Threading.waitForUserCode();
         assertFalse(future.isDone());
         inbound(channels[1], InventoryMessage.with(tx));
+
         pingAndWait(channels[1]);
         Threading.waitForUserCode();
         assertTrue(future.isDone());
@@ -107,7 +104,7 @@ public class TransactionBroadcastTest extends TestWithPeerGroup {
         connectPeer(2);
 
         // Send ourselves a bit of money.
-        Block b1 = FakeTxBuilder.makeSolvedTestBlock(blockStore, address);
+        Block b1 = TestUtils.makeSolvedTestBlock(blockStore, address);
         inbound(p1, b1);
         assertNull(outbound(p1));
         assertEquals(Utils.toNanoCoins(50, 0), wallet.getBalance());
@@ -141,8 +138,9 @@ public class TransactionBroadcastTest extends TestWithPeerGroup {
         InboundMessageQueuer p2 = connectPeer(2);
 
         // Send ourselves a bit of money.
-        Block b1 = FakeTxBuilder.makeSolvedTestBlock(blockStore, address);
+        Block b1 = TestUtils.makeSolvedTestBlock(blockStore, address);
         inbound(p1, b1);
+
         pingAndWait(p1);
         assertNull(outbound(p1));
         assertEquals(Utils.toNanoCoins(50, 0), wallet.getBalance());
@@ -173,13 +171,14 @@ public class TransactionBroadcastTest extends TestWithPeerGroup {
         InventoryMessage inv = new InventoryMessage(params);
         inv.addTransaction(t1);
         inbound(p2, inv);
+
         pingAndWait(p2);
         Threading.waitForUserCode();
         assertTrue(sendResult.broadcastComplete.isDone());
         assertEquals(transactions[0], sendResult.tx);
         assertEquals(1, transactions[0].getConfidence().numBroadcastPeers());
         // Confirm it.
-        Block b2 = FakeTxBuilder.createFakeBlock(blockStore, t1).block;
+        Block b2 = TestUtils.createFakeBlock(blockStore, t1).block;
         inbound(p1, b2);
         pingAndWait(p1);
         assertNull(outbound(p1));

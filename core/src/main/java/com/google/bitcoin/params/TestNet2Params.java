@@ -31,7 +31,6 @@ public class TestNet2Params extends NetworkParameters {
         super();
         id = ID_TESTNET;
         packetMagic = 0xfabfb5daL;
-
         port = CoinDefinition.TestPort;
         addressHeader = CoinDefinition.testnetAddressHeader;
         p2shHeader = CoinDefinition.testnetp2shHeader;

@@ -21,7 +21,7 @@
     <parent>
         <groupId>com.google</groupId>
         <artifactId>omnicoinj-parent</artifactId>
-        <version>0.2</version>
+        <version>0.11.2-MB-ALICE</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -29,6 +29,55 @@
 
     <name>omnicoinj Examples</name>
     <description>A collection of examples using the omnicoinj library</description>
+
+    <!-- This section shows you how to lock down the dependency chain so if upstream developers get hacked, your app
+         cannot be backdoored. Here we enforce the hash of the bitcoinj library. That in turn verifies the hashes of all
+         its dependencies. -->
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>1.2</version>
+                <executions>
+                    <execution>
+                        <id>enforce</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <digestRule implementation="uk.co.froot.maven.enforcer.DigestRule">
+
+                                    <!-- Create a snapshot to build the list of URNs below -->
+                                    <buildSnapshot>true</buildSnapshot>
+
+                                    <!-- List of required hashes -->
+                                    <!-- Format is URN of groupId:artifactId:version:type:classifier:scope:hash -->
+                                    <!-- classifier is "null" if not present -->
+                                    <urns>
+                                        <!-- A check for the rules themselves -->
+                                        <urn>uk.co.froot.maven.enforcer:digest-enforcer-rules:0.0.1:jar:null:runtime:16a9e04f3fe4bb143c42782d07d5faf65b32106f</urn>
+                                    </urns>
+                                </digestRule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+
+                <!-- Ensure we download the enforcer rules -->
+                <dependencies>
+                    <dependency>
+                        <groupId>uk.co.froot.maven.enforcer</groupId>
+                        <artifactId>digest-enforcer-rules</artifactId>
+                        <version>0.0.1</version>
+                    </dependency>
+                </dependencies>
+
+            </plugin>
+        </plugins>
+    </build>
 
     <dependencies>
         <dependency>
@@ -39,7 +88,7 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-jdk14</artifactId>
-            <version>1.7.6</version>
+            <version>1.6.4</version>
         </dependency>
         <dependency>
             <groupId>com.h2database</groupId>

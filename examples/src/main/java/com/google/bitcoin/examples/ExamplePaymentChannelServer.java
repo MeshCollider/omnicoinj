@@ -1,6 +1,5 @@
 /*
  * Copyright 2013 Google Inc.
- * Copyright 2014 Andreas Schildbach
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,8 +57,7 @@ public class ExamplePaymentChannelServer implements PaymentChannelServerListener
                 wallet().addExtension(storedStates);
             }
         };
-        appKit.startAsync();
-        appKit.awaitRunning();
+        appKit.startAndWait();
 
         System.out.println(appKit.wallet());
 

@@ -16,6 +16,7 @@
 
 package com.google.bitcoin.core;
 
+import com.google.bitcoin.IsMultiBitClass;
 import com.google.bitcoin.script.Script;
 
 import javax.annotation.Nullable;
@@ -24,7 +25,6 @@ import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
 import java.lang.ref.WeakReference;
-import java.util.Arrays;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkElementIndex;
@@ -36,8 +36,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * transaction as being a module which is wired up to others, the inputs of one have to be wired
  * to the outputs of another. The exceptions are coinbase transactions, which create new coins.
  */
-public class TransactionInput extends ChildMessage implements Serializable {
+public class TransactionInput extends ChildMessage implements Serializable, IsMultiBitClass {
     public static final long NO_SEQUENCE = 0xFFFFFFFFL;
+    public static final long NO_SEQUENCE_ALTERNATIVE = -1L;
     private static final long serialVersionUID = 2;
     public static final byte[] EMPTY_ARRAY = new byte[0];
 
@@ -378,7 +379,7 @@ public class TransactionInput extends ChildMessage implements Serializable {
      * @return true if this transaction's sequence number is set (ie it may be a part of a time-locked transaction)
      */
     public boolean hasSequence() {
-        return sequence != NO_SEQUENCE;
+        return (sequence != NO_SEQUENCE && sequence != NO_SEQUENCE_ALTERNATIVE);
     }
 
     /**
@@ -422,35 +423,5 @@ public class TransactionInput extends ChildMessage implements Serializable {
     @Nullable
     public TransactionOutput getConnectedOutput() {
         return getOutpoint().getConnectedOutput();
-    }
-
-    /** Returns a copy of the input detached from its containing transaction, if need be. */
-    public TransactionInput duplicateDetached() {
-        return new TransactionInput(params, null, bitcoinSerialize(), 0);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        TransactionInput input = (TransactionInput) o;
-
-        if (sequence != input.sequence) return false;
-        if (!outpoint.equals(input.outpoint)) return false;
-        if (!Arrays.equals(scriptBytes, input.scriptBytes)) return false;
-        if (scriptSig != null ? !scriptSig.equals(input.scriptSig) : input.scriptSig != null) return false;
-        if (parentTransaction != input.parentTransaction) return false;
-
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = (int) (sequence ^ (sequence >>> 32));
-        result = 31 * result + outpoint.hashCode();
-        result = 31 * result + (scriptBytes != null ? Arrays.hashCode(scriptBytes) : 0);
-        result = 31 * result + (scriptSig != null ? scriptSig.hashCode() : 0);
-        return result;
     }
 }

@@ -58,11 +58,7 @@ public class DumpedPrivateKey extends VersionedChecksummedBytes {
      */
     public DumpedPrivateKey(NetworkParameters params, String encoded) throws AddressFormatException {
         super(encoded);
-        if (CoinDefinition.allowBitcoinPrivateKey && version == 128)
-        {
-
-        }
-        else if (params != null && version != (params.getDumpedPrivateKeyHeader()))
+        if (params != null && version != params.getDumpedPrivateKeyHeader())
             throw new AddressFormatException("Mismatched version number, trying to cross networks? " + version +
                     " vs " + params.getDumpedPrivateKeyHeader());
         if (bytes.length == 33 && bytes[32] == 1) {

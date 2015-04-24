@@ -20,6 +20,7 @@ import com.google.bitcoin.store.BlockStore;
 import com.google.bitcoin.store.BlockStoreException;
 import com.google.bitcoin.utils.ListenerRegistration;
 import com.google.bitcoin.utils.Threading;
+import com.google.bitcoin.wallet.WalletTransaction;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -81,8 +82,6 @@ public class Peer extends PeerSocketHandler {
     // The version data to announce to the other side of the connections we make: useful for setting our "user agent"
     // equivalent and other things.
     private final VersionMessage versionMessage;
-    // Switch for enabling download of pending transaction dependencies.
-    private final boolean downloadTxDependencies;
     // How many block messages the peer has announced to us. Peers only announce blocks that attach to their best chain
     // so we can use this to calculate the height of the peers chain, by adding it to the initial height in the version
     // message. This method can go wrong if the peer re-orgs onto a shorter (but harder) chain, however, this is rare.
@@ -144,15 +143,6 @@ public class Peer extends PeerSocketHandler {
     // A settable future which completes (with this) when the connection is open
     private final SettableFuture<Peer> connectionOpenFuture = SettableFuture.create();
 
-    //HashEngineering
-    /*public ArrayList<AddressMessage> addressMessages = new ArrayList<AddressMessage>();
-
-    void addAddressMessage(AddressMessage m)
-    {
-       if(addressMessages.size() < 4)
-           addressMessages.add(m);
-    }*/
-
     /**
      * <p>Construct a peer that reads/writes from the given block chain.</p>
      *
@@ -184,30 +174,10 @@ public class Peer extends PeerSocketHandler {
      * used to keep track of which peers relayed transactions and offer more descriptive logging.</p>
      */
     public Peer(NetworkParameters params, VersionMessage ver, PeerAddress remoteAddress,
-            @Nullable AbstractBlockChain chain, @Nullable MemoryPool mempool) {
-        this(params, ver, remoteAddress, chain, mempool, true);
-    }
-
-   /**
-     * <p>Construct a peer that reads/writes from the given block chain and memory pool. Transactions stored in a memory
-     * pool will have their confidence levels updated when a peer announces it, to reflect the greater likelyhood that
-     * the transaction is valid.</p>
-     *
-     * <p>Note that this does <b>NOT</b> make a connection to the given remoteAddress, it only creates a handler for a
-     * connection. If you want to create a one-off connection, create a Peer and pass it to
-     * {@link com.google.bitcoin.net.NioClientManager#openConnection(java.net.SocketAddress, com.google.bitcoin.net.StreamParser)}
-     * or
-     * {@link com.google.bitcoin.net.NioClient#NioClient(java.net.SocketAddress, com.google.bitcoin.net.StreamParser, int)}.</p>
-     *
-     * <p>The remoteAddress provided should match the remote address of the peer which is being connected to, and is
-     * used to keep track of which peers relayed transactions and offer more descriptive logging.</p>
-     */
-    public Peer(NetworkParameters params, VersionMessage ver, PeerAddress remoteAddress,
-				@Nullable AbstractBlockChain chain, @Nullable MemoryPool mempool, boolean downloadTxDependencies) {
+				@Nullable AbstractBlockChain chain, @Nullable MemoryPool mempool) {
         super(params, remoteAddress);
         this.params = Preconditions.checkNotNull(params);
         this.versionMessage = Preconditions.checkNotNull(ver);
-        this.downloadTxDependencies = downloadTxDependencies;
         this.blockChain = chain;  // Allowed to be null.
         this.vDownloadData = chain != null;
         this.getDataFutures = new CopyOnWriteArrayList<GetDataRequest>();
@@ -347,16 +317,6 @@ public class Peer extends PeerSocketHandler {
         } else if (m instanceof GetDataMessage) {
             processGetData((GetDataMessage) m);
         } else if (m instanceof AddressMessage) {
-            //addAddressMessage((AddressMessage)m);
-            /*final AddressMessage mf = (AddressMessage)m;
-            for (final ListenerRegistration<PeerEventListener> registration : eventListeners) {
-                registration.executor.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        registration.listener.onPreMessageReceived(Peer.this, mf);
-                    }
-                });
-            }*/
             // We don't care about addresses of the network right now. But in future,
             // we should save them in the wallet so we don't put too much load on the seed nodes and can
             // properly explore the network.
@@ -428,8 +388,6 @@ public class Peer extends PeerSocketHandler {
             // Shut down the channel
             throw new ProtocolException("Peer does not have a copy of the block chain.");
         }
-        //Hash Engineering
-        //sendMessage(new GetAddrMessage(params));
     }
 
     private void startFilteredBlock(FilteredBlock m) {
@@ -620,27 +578,35 @@ public class Peer extends PeerSocketHandler {
                         // the chain, in case the sender goes away and the network starts to forget.
                         // TODO: Not all the above things are implemented.
 
-                        if (downloadTxDependencies) {
-                            Futures.addCallback(downloadDependencies(fTx), new FutureCallback<List<Transaction>>() {
-                                public void onSuccess(List<Transaction> dependencies) {
-                                    try {
-                                        log.info("{}: Dependency download complete!", getAddress());
-                                        wallet.receivePending(fTx, dependencies);
-                                    } catch (VerificationException e) {
-                                        log.error("{}: Wallet failed to process pending transaction {}", getAddress(),
-                                                fTx.getHashAsString());
-                                        log.error("Error was: ", e);
-                                        // Not much more we can do at this point.
-                                    }
-                                }
-
-                                public void onFailure(Throwable throwable) {
-                                    log.error("Could not download dependencies of tx {}", fTx.getHashAsString());
-                                    log.error("Error was: ", throwable);
+                        Futures.addCallback(downloadDependencies(fTx), new FutureCallback<List<Transaction>>() {
+                            public void onSuccess(List<Transaction> dependencies) {
+                                try {
+                                    log.info("{}: Dependency download complete!", getAddress());
+                                    wallet.receivePending(fTx, dependencies);
+                                } catch (VerificationException e) {
+                                    log.error("{}: Wallet failed to process pending transaction {}",
+                                            getAddress(), fTx.getHashAsString());
+                                    log.error("Error was: ", e);
                                     // Not much more we can do at this point.
                                 }
-                            });
+                            }
+
+                            public void onFailure(Throwable throwable) {
+                                log.error("Could not download dependencies of tx {}", fTx.getHashAsString());
+                                log.error("Error was: ", throwable);
+                                // Not much more we can do at this point.
+                            }
+                        });
+                    } else {
+                        // The transaction might be a pending transaction we already have.
+                        Transaction poolTx = memoryPool.get(tx.getHash());
+                        EnumSet<WalletTransaction.Pool> containingPools = wallet.getContainingPools(poolTx);
+                        if (containingPools.contains(WalletTransaction.Pool.PENDING)) {
+                            if (poolTx != null && poolTx.getConfidence() != null) {
+                                poolTx.getConfidence().markBroadcastBy(getAddress());
+                            }
                         }
+                        
                     }
                 } catch (VerificationException e) {
                     log.error("Wallet failed to verify tx", e);

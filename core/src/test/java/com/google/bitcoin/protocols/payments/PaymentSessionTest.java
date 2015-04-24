@@ -18,7 +18,6 @@
 package com.google.bitcoin.protocols.payments;
 
 import com.google.bitcoin.core.*;
-import com.google.bitcoin.crypto.TrustStoreLoader;
 import com.google.bitcoin.params.TestNet3Params;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.protobuf.ByteString;
@@ -124,9 +123,9 @@ public class PaymentSessionTest {
     public void testPkiVerification() throws Exception {
         InputStream in = getClass().getResourceAsStream("pki_test.bitcoinpaymentrequest");
         Protos.PaymentRequest paymentRequest = Protos.PaymentRequest.newBuilder().mergeFrom(in).build();
-        PaymentProtocol.PkiVerificationData pkiData = PaymentProtocol.verifyPaymentRequestPki(paymentRequest,
-                new TrustStoreLoader.DefaultTrustStoreLoader().getKeyStore());
-        assertEquals("www.bitcoincore.org", pkiData.displayName);
+        MockPaymentSession paymentSession = new MockPaymentSession(paymentRequest);
+        PaymentSession.PkiVerificationData pkiData = paymentSession.verifyPki();
+        assertEquals("www.bitcoincore.org", pkiData.name);
         assertEquals("The USERTRUST Network, Salt Lake City, US", pkiData.rootAuthorityName);
     }
 

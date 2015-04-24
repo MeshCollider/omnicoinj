@@ -1,6 +1,5 @@
 /**
  * Copyright 2013 Google Inc.
- * Copyright 2014 Andreas Schildbach
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -75,8 +74,7 @@ public class ForwardingService {
         }
 
         // Download the block chain and wait until it's done.
-        kit.startAsync();
-        kit.awaitRunning();
+        kit.startAndWait();
 
         // We want to know when we receive money.
         kit.wallet().addEventListener(new AbstractWalletEventListener() {

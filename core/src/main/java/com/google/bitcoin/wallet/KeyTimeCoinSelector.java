@@ -31,6 +31,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * A coin selector that takes all coins assigned to keys created before the given timestamp.
  * Used as part of the implementation of {@link Wallet#setKeyRotationTime(java.util.Date)}.
  */
+
 public class KeyTimeCoinSelector implements CoinSelector {
     private static final Logger log = LoggerFactory.getLogger(KeyTimeCoinSelector.class);
 
@@ -67,7 +68,9 @@ public class KeyTimeCoinSelector implements CoinSelector {
                     log.info("Skipping tx output {} because it's not of simple form.", output);
                     continue;
                 }
+
                 checkNotNull(controllingKey, "Coin selector given output as candidate for which we lack the key");
+
                 if (controllingKey.getCreationTimeSeconds() >= unixTimeSeconds) continue;
                 // It's older than the cutoff time so select.
                 valueGathered = valueGathered.add(output.getValue());
@@ -77,6 +80,7 @@ public class KeyTimeCoinSelector implements CoinSelector {
                     break;
                 }
             }
+
             return new CoinSelection(valueGathered, gathered);
         } catch (ScriptException e) {
             throw new RuntimeException(e);  // We should never have problems understanding scripts in our wallet.

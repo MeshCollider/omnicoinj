@@ -32,6 +32,8 @@ import com.google.protobuf.WireFormat;
 
 import org.bitcoinj.wallet.Protos;
 import org.bitcoinj.wallet.Protos.Wallet.EncryptionType;
+import org.multibit.store.MultiBitWalletVersion;
+import org.multibit.store.WalletVersionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -206,7 +208,9 @@ public class WalletProtobufSerializer {
         populateExtensions(wallet, walletBuilder);
 
         // Populate the wallet version.
-        walletBuilder.setVersion(wallet.getVersion());
+        if (wallet.getVersion() != null) {
+            walletBuilder.setVersion(wallet.getVersion().getWalletVersionAsInt());
+        }
 
         return walletBuilder.build();
     }
@@ -221,7 +225,7 @@ public class WalletProtobufSerializer {
         }
     }
 
-    private static Protos.Transaction makeTxProto(WalletTransaction wtx) {
+    protected static Protos.Transaction makeTxProto(WalletTransaction wtx) {
         Transaction tx = wtx.getTransaction();
         Protos.Transaction.Builder txBuilder = Protos.Transaction.newBuilder();
         
@@ -474,10 +478,27 @@ public class WalletProtobufSerializer {
             wallet.setKeyRotationTime(new Date(walletProto.getKeyRotationTime() * 1000));
         }
 
+        if (walletProto.hasKeyRotationTime()) {
+            wallet.setKeyRotationTime(new Date(walletProto.getKeyRotationTime() * 1000));
+        }
+
         loadExtensions(wallet, walletProto);
 
         if (walletProto.hasVersion()) {
-            wallet.setVersion(walletProto.getVersion());
+            int version = walletProto.getVersion();
+            if (version == MultiBitWalletVersion.PROTOBUF.getWalletVersionAsInt()) {
+                wallet.setVersion(MultiBitWalletVersion.PROTOBUF);
+            } else {
+                if (version == MultiBitWalletVersion.PROTOBUF_ENCRYPTED.getWalletVersionAsInt()) {
+                    wallet.setVersion(MultiBitWalletVersion.PROTOBUF_ENCRYPTED);  
+                } else {
+                    // Something from the future.
+                    throw new WalletVersionException("Did not understand wallet version of '" + version + "'");
+                }
+            }
+        } else {
+            // Grandfather in as protobuf.2
+            wallet.setVersion(MultiBitWalletVersion.PROTOBUF);
         }
 
         // Make sure the object can be re-used to read another wallet without corruption.

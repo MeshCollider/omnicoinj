@@ -157,7 +157,7 @@ public class PaymentChannelClientState {
      */
     public PaymentChannelClientState(Wallet wallet, ECKey myKey, ECKey serverMultisigKey,
                                      BigInteger value, long expiryTimeInSeconds) throws VerificationException {
-        checkArgument(value.signum() > 0);
+        checkArgument(value.compareTo(BigInteger.ZERO) > 0);
         this.wallet = checkNotNull(wallet);
         initWalletListeners();
         this.serverMultisigKey = checkNotNull(serverMultisigKey);
@@ -364,7 +364,7 @@ public class PaymentChannelClientState {
      * storage and throwing an {@link IllegalStateException} if it is.
      */
     public synchronized void checkNotExpired() {
-        if (Utils.currentTimeSeconds() > expiryTime) {
+        if (Utils.currentTimeMillis()/1000 > expiryTime) {
             state = State.EXPIRED;
             disconnectFromChannel();
             throw new IllegalStateException("Channel expired");
@@ -396,15 +396,15 @@ public class PaymentChannelClientState {
         checkState(state == State.READY);
         checkNotExpired();
         checkNotNull(size);  // Validity of size will be checked by makeUnsignedChannelContract.
-        if (size.signum() < 0)
+        if (size.compareTo(BigInteger.ZERO) < 0)
             throw new ValueOutOfRangeException("Tried to decrement payment");
         BigInteger newValueToMe = valueToMe.subtract(size);
-        if (newValueToMe.compareTo(Transaction.MIN_NONDUST_OUTPUT) < 0 && newValueToMe.signum() > 0) {
+        if (newValueToMe.compareTo(Transaction.MIN_NONDUST_OUTPUT) < 0 && newValueToMe.compareTo(BigInteger.ZERO) > 0) {
             log.info("New value being sent back as change was smaller than minimum nondust output, sending all");
             size = valueToMe;
             newValueToMe = BigInteger.ZERO;
         }
-        if (newValueToMe.signum() < 0)
+        if (newValueToMe.compareTo(BigInteger.ZERO) < 0)
             throw new ValueOutOfRangeException("Channel has too little money to pay " + size + " satoshis");
         Transaction tx = makeUnsignedChannelContract(newValueToMe);
         log.info("Signing new payment tx {}", tx);

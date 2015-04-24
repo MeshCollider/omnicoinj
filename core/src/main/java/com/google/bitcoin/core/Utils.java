@@ -22,9 +22,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.UnsignedLongs;
+import com.lambdaworks.crypto.SCrypt;
 import org.spongycastle.crypto.digests.RIPEMD160Digest;
 import org.spongycastle.util.encoders.Hex;
-import com.lambdaworks.crypto.SCrypt;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -124,10 +124,10 @@ public class Utils {
      */
     public static BigInteger toNanoCoins(String coins) {
         BigInteger bigint = new BigDecimal(coins).movePointRight(8).toBigIntegerExact();
-        if (bigint.signum() < 0)
+        if (bigint.compareTo(BigInteger.ZERO) < 0)
             throw new ArithmeticException("Negative coins specified");
         if (bigint.compareTo(NetworkParameters.MAX_MONEY) > 0)
-            throw new ArithmeticException("Amount larger than the total quantity of "+CoinDefinition.coinName+"s possible specified.");
+            throw new ArithmeticException("Amount larger than the total quantity of Bitcoins possible specified.");
         return bigint;
     }
 
@@ -201,7 +201,6 @@ public class Utils {
             return null;
         }
     }
-
     /**
      * Calculates the SHA-256 hash of the given byte range, and then hashes the resulting hash again. This is
      * standard procedure in Bitcoin. The resulting hash is in big endian form.
@@ -343,7 +342,7 @@ public class Utils {
      */
     public static String bitcoinValueToFriendlyString(BigInteger value) {
         // TODO: This API is crap. This method should go away when we encapsulate money values.
-        boolean negative = value.signum() < 0;
+        boolean negative = value.compareTo(BigInteger.ZERO) < 0;
         if (negative)
             value = value.negate();
         BigDecimal bd = new BigDecimal(value, 8);
@@ -416,7 +415,7 @@ public class Utils {
             else
                 return new byte[] {0x00, 0x00, 0x00, 0x00};
         }
-        boolean isNegative = value.signum() < 0;
+        boolean isNegative = value.compareTo(BigInteger.ZERO) < 0;
         if (isNegative)
             value = value.negate();
         byte[] array = value.toByteArray();
@@ -501,19 +500,14 @@ public class Utils {
             return new Date();
     }
 
-    // TODO: Replace usages of this where the result is / 1000 with currentTimeSeconds.
-    /** Returns the current time in milliseconds since the epoch, or a mocked out equivalent. */
+    /** Returns the current time in seconds since the epoch, or a mocked out equivalent. */
     public static long currentTimeMillis() {
         if (mockTime != null)
             return mockTime.getTime();
         else
             return System.currentTimeMillis();
     }
-
-    public static long currentTimeSeconds() {
-        return currentTimeMillis() / 1000;
-    }
-
+    
     public static byte[] copyOf(byte[] in, int length) {
         byte[] out = new byte[length];
         System.arraycopy(in, 0, out, 0, Math.min(length, in.length));

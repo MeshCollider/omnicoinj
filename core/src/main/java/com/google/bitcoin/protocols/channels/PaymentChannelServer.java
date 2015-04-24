@@ -219,7 +219,7 @@ public class PaymentChannelServer {
         myKey = new ECKey();
         wallet.addKey(myKey);
 
-        expireTime = Utils.currentTimeSeconds() + timeWindow;
+        expireTime = Utils.currentTimeMillis() / 1000 + timeWindow;
         step = InitStep.WAITING_ON_UNSIGNED_REFUND;
 
         Protos.Initiate.Builder initiateBuilder = Protos.Initiate.newBuilder()
@@ -315,7 +315,7 @@ public class PaymentChannelServer {
         boolean stillUsable = state.incrementPayment(refundSize, msg.getSignature().toByteArray());
         BigInteger bestPaymentChange = state.getBestValueToMe().subtract(lastBestPayment);
 
-        if (bestPaymentChange.signum() > 0)
+        if (bestPaymentChange.compareTo(BigInteger.ZERO) > 0)
             conn.paymentIncrease(bestPaymentChange, state.getBestValueToMe());
 
         if (sendAck) {

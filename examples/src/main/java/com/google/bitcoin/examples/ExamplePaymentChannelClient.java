@@ -1,6 +1,5 @@
 /*
  * Copyright 2013 Google Inc.
- * Copyright 2014 Andreas Schildbach
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -74,8 +73,7 @@ public class ExamplePaymentChannelClient {
                 wallet().addExtension(new StoredPaymentChannelClientStates(wallet(), peerGroup()));
             }
         };
-        appKit.startAsync();
-        appKit.awaitRunning();
+        appKit.startAndWait();
         // We now have active network connections and a fully synced wallet.
         // Add a new key which will be used for the multisig contract.
         appKit.wallet().addKey(myKey);
@@ -105,8 +103,7 @@ public class ExamplePaymentChannelClient {
         log.info("Waiting ...");
         Thread.sleep(60 * 60 * 1000);  // 1 hour.
         log.info("Stopping ...");
-        appKit.stopAsync();
-        appKit.awaitTerminated();
+        appKit.stopAndWait();
     }
 
     private void openAndSend(int timeoutSecs, InetSocketAddress server, String channelID) throws IOException, ValueOutOfRangeException, InterruptedException {

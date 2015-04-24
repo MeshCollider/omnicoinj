@@ -127,8 +127,9 @@ public final class HDKeyDerivation {
         } else {
             checkArgument(!childNumber.isPrivateDerivation(), "Can't use private derivation with public keys only.");
             ECPoint Ki = ECKey.CURVE.getG().multiply(ilInt).add(parent.getPubPoint());
-            checkArgument(!Ki.isInfinity(), "Illegal derived key: derived public key equals infinity.");
-            keyBytes = Ki.getEncoded(true);
+            checkArgument(!Ki.equals(ECKey.CURVE.getCurve().getInfinity()),
+                    "Illegal derived key: derived public key equals infinity.");
+            keyBytes = HDUtils.toCompressed(Ki.getEncoded());
         }
         return new RawKeyBytes(keyBytes, chainCode);
     }

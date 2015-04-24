@@ -38,7 +38,7 @@ public class UnitTestParams extends NetworkParameters {
         genesisBlock.setTime(System.currentTimeMillis() / 1000);
         genesisBlock.setDifficultyTarget(Block.EASIEST_DIFFICULTY_TARGET);
         genesisBlock.solve();
-        port = CoinDefinition.TestPort;
+        port = 18333;
         interval = 10;
         dumpedPrivateKeyHeader = 128 + CoinDefinition.testnetAddressHeader;
         targetTimespan = 200000000;  // 6 years. Just a very big number.

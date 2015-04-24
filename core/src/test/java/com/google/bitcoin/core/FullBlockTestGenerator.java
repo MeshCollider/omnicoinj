@@ -964,7 +964,7 @@ public class FullBlockTestGenerator {
         
         // Block with timestamp > 2h in the future
         Block b48 = createNextBlock(b44, chainHeadHeight + 16, out15, null);
-        b48.setTime(Utils.currentTimeSeconds() + 60*60*3);
+        b48.setTime(Utils.currentTimeMillis() / 1000 + 60*60*3);
         b48.solve();
         blocks.add(new BlockAndValidity(blockToHeightMap, b48, false, true, b44.getHash(), chainHeadHeight + 15, "b48"));
         
@@ -1117,9 +1117,17 @@ public class FullBlockTestGenerator {
         
         Block b61 = createNextBlock(b60, chainHeadHeight + 19, out18, null);
         {
-            b61.getTransactions().get(0).getInput(0).setScriptBytes(b60.getTransactions().get(0).getInput(0).getScriptBytes());
+            final Transaction tx = b61.getTransactions().get(0);
+            byte[] scriptBytes = tx.getInputs().get(0).getScriptBytes();
+            // createNextBlock will increment a uint16 in the first script bytes of each new block.
+            int tmp = (scriptBytes[0] | (scriptBytes[1] << 8)) - 1;
+            scriptBytes[0] = (byte) tmp;
+            scriptBytes[1] = (byte) (tmp >> 8);
+            tx.getInputs().get(0).setScriptBytes(scriptBytes);
+
             b61.unCache();
-            Preconditions.checkState(b61.getTransactions().get(0).equals(b60.getTransactions().get(0)));
+            final Transaction tx2 = b60.getTransactions().get(0);
+            Preconditions.checkState(tx.equals(tx2));
         }
         b61.solve();
         blocks.add(new BlockAndValidity(blockToHeightMap, b61, false, true, b60.getHash(), chainHeadHeight + 18, "b61"));
@@ -1617,8 +1625,7 @@ public class FullBlockTestGenerator {
         // (finally) return the created chain
         return ret;
     }
-
-    private byte uniquenessCounter = 0;
+    
     private Block createNextBlock(Block baseBlock, int nextBlockHeight, TransactionOutPointWithValue prevOut,
             BigInteger additionalCoinbaseValue) throws ScriptException {
         Integer height = blockToHeightMap.get(baseBlock.getHash());
@@ -1635,7 +1642,7 @@ public class FullBlockTestGenerator {
             t.addOutput(new TransactionOutput(params, t, BigInteger.valueOf(1),
                     ScriptBuilder.createOutputScript(new ECKey(null, coinbaseOutKeyPubKey)).getProgram()));
             // Spendable output
-            t.addOutput(new TransactionOutput(params, t, BigInteger.ZERO, new byte[] {OP_1, uniquenessCounter++}));
+            t.addOutput(new TransactionOutput(params, t, BigInteger.ZERO, new byte[] {OP_1}));
             addOnlyInputToTransaction(t, prevOut);
             block.addTransaction(t);
             block.solve();

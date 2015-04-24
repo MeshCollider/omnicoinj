@@ -65,11 +65,11 @@ public class Ping extends Message {
         
     }
     
-    public boolean hasNonce() {
+    boolean hasNonce() {
         return hasNonce;
     }
     
-    public long getNonce() {
+    long getNonce() {
         return nonce;
     }
 }

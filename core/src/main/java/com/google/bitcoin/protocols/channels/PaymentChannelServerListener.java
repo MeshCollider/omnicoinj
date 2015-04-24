@@ -1,6 +1,5 @@
 /*
  * Copyright 2013 Google Inc.
- * Copyright 2014 Andreas Schildbach
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -143,8 +142,7 @@ public class PaymentChannelServerListener {
                 return new ServerHandler(new InetSocketAddress(inetAddress, port), timeoutSeconds).socketProtobufHandler;
             }
         }, new InetSocketAddress(port));
-        server.startAsync();
-        server.awaitRunning();
+        server.startAndWait();
     }
 
     /**
@@ -178,7 +176,6 @@ public class PaymentChannelServerListener {
      * wallet.</p>
      */
     public void close() {
-        server.stopAsync();
-        server.awaitTerminated();
+        server.stopAndWait();
     }
 }

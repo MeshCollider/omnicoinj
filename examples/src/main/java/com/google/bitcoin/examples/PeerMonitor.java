@@ -1,6 +1,5 @@
 /*
  * Copyright 2012 Google Inc.
- * Copyright 2014 Andreas Schildbach
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,7 +57,7 @@ public class PeerMonitor {
     public PeerMonitor() {
         setupNetwork();
         setupGUI();
-        peerGroup.startAsync();
+        peerGroup.start();
     }
 
     private void setupNetwork() {
@@ -114,8 +113,7 @@ public class PeerMonitor {
             @Override
             public void windowClosing(WindowEvent windowEvent) {
                 System.out.println("Shutting down ...");
-                peerGroup.stopAsync();
-                peerGroup.awaitTerminated();
+                peerGroup.stopAndWait();
                 System.out.println("Shutdown complete.");
                 System.exit(0);
             }

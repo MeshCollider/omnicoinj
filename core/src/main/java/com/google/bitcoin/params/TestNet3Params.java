@@ -18,7 +18,6 @@ package com.google.bitcoin.params;
 
 import com.google.bitcoin.core.CoinDefinition;
 import com.google.bitcoin.core.NetworkParameters;
-import com.google.bitcoin.core.Sha256Hash;
 import com.google.bitcoin.core.Utils;
 import org.spongycastle.util.encoders.Hex;
 
@@ -32,10 +31,8 @@ public class TestNet3Params extends NetworkParameters {
     public TestNet3Params() {
         super();
         id = ID_TESTNET;
-
         // Genesis hash is 000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943
-
-        packetMagic = 0xd4cba1ef;
+        packetMagic = 0x0b110907;
         interval = INTERVAL;
         targetTimespan = TARGET_TIMESPAN;
         proofOfWorkLimit = Utils.decodeCompactBits(0x1d00ffffL);
@@ -49,14 +46,12 @@ public class TestNet3Params extends NetworkParameters {
         genesisBlock.setNonce(CoinDefinition.testnetGenesisBlockNonce);
         spendableCoinbaseDepth = 100;
         subsidyDecreaseBlockCount = CoinDefinition.subsidyDecreaseBlockCount;
-        genesisBlock.setMerkleRoot(new Sha256Hash("35e6a0e897ed76cd5f08b75d118fb7c99aec7cdd297b96c21dc6671d2034c953"));
         String genesisHash = genesisBlock.getHashAsString();
         if(CoinDefinition.supportsTestNet)
             checkState(genesisHash.equals(CoinDefinition.testnetGenesisHash));
         alertSigningKey = Hex.decode(CoinDefinition.TESTNET_SATOSHI_KEY);
 
         dnsSeeds = CoinDefinition.testnetDnsSeeds;
-
     }
 
     private static TestNet3Params instance;

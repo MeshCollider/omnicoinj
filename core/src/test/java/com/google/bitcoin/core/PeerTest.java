@@ -17,9 +17,7 @@
 package com.google.bitcoin.core;
 
 import com.google.bitcoin.params.TestNet3Params;
-import com.google.bitcoin.testing.FakeTxBuilder;
-import com.google.bitcoin.testing.InboundMessageQueuer;
-import com.google.bitcoin.testing.TestWithNetworkConnections;
+import com.google.bitcoin.utils.TestUtils;
 import com.google.bitcoin.utils.Threading;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -48,7 +46,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.google.bitcoin.testing.FakeTxBuilder.*;
+import static com.google.bitcoin.utils.TestUtils.*;
 import static org.junit.Assert.*;
 
 @RunWith(value = Parameterized.class)
@@ -450,7 +448,7 @@ public class PeerTest extends TestWithNetworkConnections {
         Block b4 = makeSolvedTestBlock(b3);
 
         // Request headers until the last 2 blocks.
-        peer.setDownloadParameters(Utils.currentTimeSeconds() - (600*2) + 1, false);
+        peer.setDownloadParameters((Utils.currentTimeMillis() / 1000) - (600*2) + 1, false);
         peer.startBlockChainDownload();
         GetHeadersMessage getheaders = (GetHeadersMessage) outbound(writeTarget);
         List<Sha256Hash> expectedLocator = new ArrayList<Sha256Hash>();
@@ -543,9 +541,9 @@ public class PeerTest extends TestWithNetworkConnections {
         //      -> [t7]
         //      -> [t8]
         // The ones in brackets are assumed to be in the chain and are represented only by hashes.
-        Transaction t2 = FakeTxBuilder.createFakeTx(unitTestParams, Utils.toNanoCoins(1, 0), to);
+        Transaction t2 = TestUtils.createFakeTx(unitTestParams, Utils.toNanoCoins(1, 0), to);
         Sha256Hash t5 = t2.getInput(0).getOutpoint().getHash();
-        Transaction t4 = FakeTxBuilder.createFakeTx(unitTestParams, Utils.toNanoCoins(1, 0), new ECKey());
+        Transaction t4 = TestUtils.createFakeTx(unitTestParams, Utils.toNanoCoins(1, 0), new ECKey());
         Sha256Hash t6 = t4.getInput(0).getOutpoint().getHash();
         t4.addOutput(Utils.toNanoCoins(1, 0), new ECKey());
         Transaction t3 = new Transaction(unitTestParams);
@@ -559,10 +557,10 @@ public class PeerTest extends TestWithNetworkConnections {
         Sha256Hash anotherHash = new Sha256Hash("3b801dd82f01d17bbde881687bf72bc62e2faa8ab8133d36fcb8c3abe7459da6");
         t1.addInput(new TransactionInput(unitTestParams, t1, new byte[]{}, new TransactionOutPoint(unitTestParams, 1, anotherHash)));
         t1.addOutput(Utils.toNanoCoins(1, 0), to);
-        t1 = FakeTxBuilder.roundTripTransaction(unitTestParams, t1);
-        t2 = FakeTxBuilder.roundTripTransaction(unitTestParams, t2);
-        t3 = FakeTxBuilder.roundTripTransaction(unitTestParams, t3);
-        t4 = FakeTxBuilder.roundTripTransaction(unitTestParams, t4);
+        t1 = TestUtils.roundTripTransaction(unitTestParams, t1);
+        t2 = TestUtils.roundTripTransaction(unitTestParams, t2);
+        t3 = TestUtils.roundTripTransaction(unitTestParams, t3);
+        t4 = TestUtils.roundTripTransaction(unitTestParams, t4);
 
         // Announce the first one. Wait for it to be downloaded.
         InventoryMessage inv = new InventoryMessage(unitTestParams);
@@ -665,7 +663,7 @@ public class PeerTest extends TestWithNetworkConnections {
             }
         });
         // Send a normal relevant transaction, it's received correctly.
-        Transaction t1 = FakeTxBuilder.createFakeTx(unitTestParams, Utils.toNanoCoins(1, 0), key);
+        Transaction t1 = TestUtils.createFakeTx(unitTestParams, Utils.toNanoCoins(1, 0), key);
         inbound(writeTarget, t1);
         GetDataMessage getdata = (GetDataMessage) outbound(writeTarget);
         if (useNotFound) {
@@ -678,7 +676,7 @@ public class PeerTest extends TestWithNetworkConnections {
         assertNotNull(vtx[0]);
         vtx[0] = null;
         // Send a timelocked transaction, nothing happens.
-        Transaction t2 = FakeTxBuilder.createFakeTx(unitTestParams, Utils.toNanoCoins(2, 0), key);
+        Transaction t2 = TestUtils.createFakeTx(unitTestParams, Utils.toNanoCoins(2, 0), key);
         t2.setLockTime(999999);
         inbound(writeTarget, t2);
         Threading.waitForUserCode();

@@ -152,7 +152,7 @@ public class BitcoinURI {
         // Split off the address from the rest of the query parameters.
         String[] addressSplitTokens = schemeSpecificPart.split("\\?");
         if (addressSplitTokens.length == 0)
-            throw new BitcoinURIParseException("No data found after the "+CoinDefinition.coinName +": prefix");
+            throw new BitcoinURIParseException("No data found after the "+ CoinDefinition.coinName +": prefix");
         String addressToken = addressSplitTokens[0];  // may be empty!
 
         String[] nameValuePairTokens;
@@ -194,11 +194,10 @@ public class BitcoinURI {
     private void parseParameters(@Nullable NetworkParameters params, String addressToken, String[] nameValuePairTokens) throws BitcoinURIParseException {
         // Attempt to decode the rest of the tokens into a parameter map.
         for (String nameValuePairToken : nameValuePairTokens) {
-
             final int sepIndex = nameValuePairToken.indexOf('=');
             if (sepIndex == -1)
                 throw new BitcoinURIParseException("Malformed "+CoinDefinition.coinName +" URI - no separator in '" +
-                        nameValuePairToken + "'");
+                                        nameValuePairToken + "'");
             if (sepIndex == 0)
                 throw new BitcoinURIParseException("Malformed "+CoinDefinition.coinName +" URI - empty name '" +
                         nameValuePairToken + "'");
@@ -331,7 +330,7 @@ public class BitcoinURI {
     public static String convertToBitcoinURI(String address, @Nullable BigInteger amount, @Nullable String label,
                                              @Nullable String message) {
         checkNotNull(address);
-        if (amount != null && amount.signum() < 0) {
+        if (amount != null && amount.compareTo(BigInteger.ZERO) < 0) {
             throw new IllegalArgumentException("Amount must be positive");
         }
         

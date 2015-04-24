@@ -23,8 +23,8 @@ import com.google.bitcoin.core.TransactionConfidence.ConfidenceType;
 import com.google.bitcoin.params.MainNetParams;
 import com.google.bitcoin.params.UnitTestParams;
 import com.google.bitcoin.script.ScriptBuilder;
-import com.google.bitcoin.testing.FakeTxBuilder;
 import com.google.bitcoin.utils.BriefLogFormatter;
+import com.google.bitcoin.utils.TestUtils;
 import com.google.bitcoin.utils.Threading;
 import com.google.protobuf.ByteString;
 import org.bitcoinj.wallet.Protos;
@@ -40,7 +40,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.Set;
 
-import static com.google.bitcoin.testing.FakeTxBuilder.createFakeTx;
+import static com.google.bitcoin.utils.TestUtils.createFakeTx;
 import static org.junit.Assert.*;
 
 public class WalletProtobufSerializerTest {
@@ -71,14 +71,15 @@ public class WalletProtobufSerializerTest {
     public void empty() throws Exception {
         // Check the base case of a wallet with one key and no transactions.
         Wallet wallet1 = roundTrip(myWallet);
-        assertEquals(0, wallet1.getTransactions(true).size());
-        assertEquals(BigInteger.ZERO, wallet1.getBalance());
-        assertArrayEquals(myKey.getPubKey(),
+        assertEquals("Wrong number of keys", 0, wallet1.getTransactions(true).size());
+        assertEquals("Wrong balance", BigInteger.ZERO, wallet1.getBalance());
+        assertArrayEquals("Wrong pubkey", myKey.getPubKey(),
                 wallet1.findKeyFromPubHash(myKey.getPubKeyHash()).getPubKey());
-        assertArrayEquals(myKey.getPrivKeyBytes(),
+        assertArrayEquals("Wrong privkey", myKey.getPrivKeyBytes(),
                 wallet1.findKeyFromPubHash(myKey.getPubKeyHash()).getPrivKeyBytes());
-        assertEquals(myKey.getCreationTimeSeconds(),
+        assertEquals("Wring creation time", myKey.getCreationTimeSeconds(),
                 wallet1.findKeyFromPubHash(myKey.getPubKeyHash()).getCreationTimeSeconds());
+
         assertEquals(mScriptCreationTime,
                 wallet1.getWatchedScripts().get(0).getCreationTimeSeconds());
         assertEquals(1, wallet1.getWatchedScripts().size());
@@ -125,7 +126,7 @@ public class WalletProtobufSerializerTest {
     @Test
     public void doubleSpend() throws Exception {
         // Check that we can serialize double spends correctly, as this is a slightly tricky case.
-        FakeTxBuilder.DoubleSpends doubleSpends = FakeTxBuilder.createFakeDoubleSpendTxns(params, myAddress);
+        TestUtils.DoubleSpends doubleSpends = TestUtils.createFakeDoubleSpendTxns(params, myAddress);
         // t1 spends to our wallet.
         myWallet.receivePending(doubleSpends.t1, null);
         // t2 rolls back t1 and spends somewhere else.
@@ -198,11 +199,11 @@ public class WalletProtobufSerializerTest {
         // Start by building two blocks on top of the genesis block.
         Block b1 = params.getGenesisBlock().createNextBlock(myAddress);
         BigInteger work1 = b1.getWork();
-        assertTrue(work1.signum() > 0);
+        assertTrue(work1.compareTo(BigInteger.ZERO) > 0);
 
         Block b2 = b1.createNextBlock(myAddress);
         BigInteger work2 = b2.getWork();
-        assertTrue(work2.signum() > 0);
+        assertTrue(work2.compareTo(BigInteger.ZERO) > 0);
 
         assertTrue(chain.add(b1));
         assertTrue(chain.add(b2));

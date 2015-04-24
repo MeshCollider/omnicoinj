@@ -16,11 +16,14 @@
 
 package com.google.bitcoin.core;
 
+import com.google.bitcoin.IsMultiBitClass;
 import com.google.bitcoin.utils.ListenerRegistration;
 import com.google.bitcoin.utils.Threading;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.Serializable;
@@ -57,8 +60,10 @@ import java.util.concurrent.Executor;
  * method to ensure the block depth and work done are up to date.</p>
  * To make a copy that won't be changed, use {@link com.google.bitcoin.core.TransactionConfidence#duplicate()}.
  */
-public class TransactionConfidence implements Serializable {
+public class TransactionConfidence implements Serializable, IsMultiBitClass {
     private static final long serialVersionUID = 4577920141400556444L;
+
+    private static final Logger log = LoggerFactory.getLogger(TransactionConfidence.class);
 
     /**
      * The peers that have announced the transaction to us. Network nodes don't have stable identities, so we use
@@ -66,6 +71,9 @@ public class TransactionConfidence implements Serializable {
      * to us, so only peers we explicitly connected to should go here.
      */
     private CopyOnWriteArrayList<PeerAddress> broadcastBy;
+    
+    private int broadcastByCount;
+
     /** The Transaction that this confidence object is associated with. */
     private final Transaction transaction;
     // Lazily created listeners array.
@@ -137,6 +145,7 @@ public class TransactionConfidence implements Serializable {
     public TransactionConfidence(Transaction tx) {
         // Assume a default number of peers for our set.
         broadcastBy = new CopyOnWriteArrayList<PeerAddress>();
+        broadcastByCount = 0;
         listeners = new CopyOnWriteArrayList<ListenerRegistration<Listener>>();
         transaction = tx;
     }
@@ -244,12 +253,10 @@ public class TransactionConfidence implements Serializable {
      * transaction becomes available.
      */
     public synchronized void setConfidenceType(ConfidenceType confidenceType) {
+        // Don't inform the event listeners if the confidence didn't really change.
         if (confidenceType == this.confidenceType)
             return;
         this.confidenceType = confidenceType;
-        if (confidenceType != ConfidenceType.DEAD) {
-            overridingTransaction = null;
-        }
         if (confidenceType == ConfidenceType.PENDING) {
             depth = 0;
             appearedAtChainHeight = -1;
@@ -269,6 +276,9 @@ public class TransactionConfidence implements Serializable {
     public synchronized boolean markBroadcastBy(PeerAddress address) {
         if (!broadcastBy.addIfAbsent(address))
             return false;  // Duplicate.
+
+        broadcastByCount++;
+
         if (getConfidenceType() == ConfidenceType.UNKNOWN) {
             this.confidenceType = ConfidenceType.PENDING;
         }
@@ -392,8 +402,7 @@ public class TransactionConfidence implements Serializable {
     /**
      * Called when the transaction becomes newly dead, that is, we learn that one of its inputs has already been spent
      * in such a way that the double-spending transaction takes precedence over this one. It will not become valid now
-     * unless there is a re-org. Automatically sets the confidence type to DEAD. The overriding transaction may not
-     * directly double spend this one, but could also have double spent a dependency of this tx.
+     * unless there is a re-org. Automatically sets the confidence type to DEAD.
      */
     public synchronized void setOverridingTransaction(@Nullable Transaction overridingTransaction) {
         this.overridingTransaction = overridingTransaction;
@@ -406,6 +415,7 @@ public class TransactionConfidence implements Serializable {
         // There is no point in this sync block, it's just to help FindBugs.
         synchronized (c) {
             c.broadcastBy.addAll(broadcastBy);
+            c.broadcastByCount = broadcastByCount;
             c.confidenceType = confidenceType;
             c.overridingTransaction = overridingTransaction;
             c.appearedAtChainHeight = appearedAtChainHeight;
@@ -469,6 +479,10 @@ public class TransactionConfidence implements Serializable {
             }
         }, executor);
         return result;
+    }
+
+    public int getBroadcastByCount() {
+        return broadcastByCount;
     }
 
     public synchronized ListenableFuture<Transaction> getDepthFuture(final int depth) {

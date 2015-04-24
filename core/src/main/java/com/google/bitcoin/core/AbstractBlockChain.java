@@ -34,9 +34,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executor;
 import java.util.concurrent.locks.ReentrantLock;
 
-import hashengineering.difficulty.KimotoGravityWell.kgw;
-
 import static com.google.common.base.Preconditions.*;
+
+import hashengineering.difficulty.KimotoGravityWell.kgw;
 
 /**
  * <p>An AbstractBlockChain holds a series of {@link Block} objects, links them together, and knows how to verify that
@@ -371,7 +371,7 @@ public abstract class AbstractBlockChain {
             // Prove the block is internally valid: hash is lower than target, etc. This only checks the block contents
             // if there is a tx sending or receiving coins using an address in one of our wallets. And those transactions
             // are only lightly verified: presence in a valid connecting block is taken as proof of validity. See the
-            // article here for more details: http://code.google.com/p/bitcoincoinj/wiki/SecurityModel
+            // article here for more details: http://code.google.com/p/bitcoinj/wiki/SecurityModel
             try {
                 block.verifyHeader();
                 if (contentsImportant)
@@ -444,6 +444,7 @@ public abstract class AbstractBlockChain {
             StoredBlock newStoredBlock = addToBlockStore(storedPrev,
                     block.transactions == null ? block : block.cloneAsHeader(), txOutChanges);
             setChainHead(newStoredBlock);
+
             log.debug("Chain is now {} blocks high, running listeners", newStoredBlock.getHeight());
             informListenersForNewBlock(block, NewBlockType.BEST_CHAIN, filteredTxHashList, filteredTxn, newStoredBlock);
         } else {
@@ -548,6 +549,7 @@ public abstract class AbstractBlockChain {
             // is relevant to both of them, they don't end up accidentally sharing the same object (which can
             // result in temporary in-memory corruption during re-orgs). See bug 257. We only duplicate in
             // the case of multiple wallets to avoid an unnecessary efficiency hit in the common case.
+
             sendTransactionsToListener(newStoredBlock, newBlockType, listener, 0, block.transactions,
                     !first, falsePositives);
         } else if (filteredTxHashList != null) {
@@ -795,29 +797,6 @@ public abstract class AbstractBlockChain {
     // February 16th 2012
     private static final Date testnetDiffDate = new Date(1329264000000L);
 
-    /**
-     * Throws an exception if the blocks difficulty is not correct.
-     */
-     
-     private void checkDifficultyTransitions(StoredBlock storedPrev, Block nextBlock) throws BlockStoreException, VerificationException {
-
-        checkState(lock.isHeldByCurrentThread());
-        if (storedPrev.getHeight() == 160)
-        { 
-            //if(CoinDefinition.startDifficulty.longValue() != nextBlock.getDifficultyTarget()) 
-            if(CoinDefinition.startDifficulty.compareTo(nextBlock.getDifficultyTargetAsInteger()) != 0)
-                throw new VerificationException("Block " + (storedPrev.getHeight()+1)+" < 160, Network Bits do not match");
-            return;
-        }
-        else if (storedPrev.getHeight()  > 150000)
-        { 
-            //After block 120000, DGW is used. Otherwise, use KGW
-            checkDifficultyTransitions_DGW(storedPrev, nextBlock);
-            return;
-        }
-        checkDifficultyTransitions_V2(storedPrev, nextBlock);
-    }
-    
     private void verifyDifficulty(BigInteger calcDiff, Block nextBlock)
     {
         if (calcDiff.compareTo(params.getProofOfWorkLimit()) > 0) {
@@ -835,124 +814,29 @@ public abstract class AbstractBlockChain {
             throw new VerificationException("Network provided difficulty bits do not match what was calculated: " +
                     receivedDifficulty.toString(16) + " vs " + calcDiff.toString(16));
     }
-    public static class FRexpResult
-    {
-        public int exponent = 0;
-        public double mantissa = 0.;
-    }
-
-    public static FRexpResult frexp(double value)
-    {
-        final FRexpResult result = new FRexpResult();
-        long bits = Double.doubleToLongBits(value);
-        double realMant = 1.;
-
-        // Test for NaN, infinity, and zero.
-        if (Double.isNaN(value) ||
-                value + value == value ||
-                Double.isInfinite(value))
-        {
-            result.exponent = 0;
-            result.mantissa = value;
+    
+    /**
+     * Throws an exception if the blocks difficulty is not correct.
+     */
+    private void checkDifficultyTransitions(StoredBlock storedPrev, Block nextBlock) throws BlockStoreException, VerificationException {
+        checkState(lock.isHeldByCurrentThread());
+        if (storedPrev.getHeight() == 160)
+        { 
+            //if(CoinDefinition.startDifficulty.longValue() != nextBlock.getDifficultyTarget()) 
+            if(CoinDefinition.startDifficulty.compareTo(nextBlock.getDifficultyTargetAsInteger()) != 0)
+                throw new VerificationException("Block " + (storedPrev.getHeight()+1)+" < 160, Network Bits do not match");
+            return;
         }
-        else
-        {
-
-            boolean neg = (bits < 0);
-            int exponent = (int)((bits >> 52) & 0x7ffL);
-            long mantissa = bits & 0xfffffffffffffL;
-
-            if(exponent == 0)
-            {
-                exponent++;
-            }
-            else
-            {
-                mantissa = mantissa | (1L<<52);
-            }
-
-            // bias the exponent - actually biased by 1023.
-            // we are treating the mantissa as m.0 instead of 0.m
-            //  so subtract another 52.
-            exponent -= 1075;
-            realMant = mantissa;
-
-            // normalize
-            while(realMant > 1.0)
-            {
-                mantissa >>= 1;
-                realMant /= 2.;
-                exponent++;
-            }
-
-            if(neg)
-            {
-                realMant = realMant * -1;
-            }
-
-            result.exponent = exponent;
-            result.mantissa = realMant;
+        else if (storedPrev.getHeight()  > 150000)
+        { 
+            //After block 120000, DGW is used. Otherwise, use KGW
+            checkDifficultyTransitions_DGW(storedPrev, nextBlock);
+            return;
         }
-        return result;
+        checkDifficultyTransitions_V2(storedPrev, nextBlock);
     }
-    private long DoubleToNumerator(double inDouble)
-    {
-        long outNumerator;
-        long outDenominator;
-        double fPart;
-        int expo; // exponent
-        long lExpo;
-        int i;
-
-        //fPart = frexp(inDouble, &expo);
-        FRexpResult result =frexp(inDouble);
-        fPart = result.mantissa;
-        expo = result.exponent;
-
-        for (i=0; i<300 && fPart != java.lang.Math.floor(fPart) ; i++) { fPart *= 2.0; expo--; }
-
-        outNumerator = (long) fPart;
-        lExpo = 1L << java.lang.Math.abs((long) expo);
-        if (expo > 0) {
-            outNumerator *= lExpo;
-            outDenominator = 1;
-        }
-        else { outDenominator = lExpo; }
-
-        return outNumerator;
-    }
-    private long DoubleToDenominator(double inDouble)
-    {
-        long outNumerator;
-        long outDenominator;
-        double fPart;
-        int expo; // exponent
-        long lExpo;
-        int i;
-
-        //fPart = frexp(inDouble, &expo);
-        FRexpResult result =frexp(inDouble);
-        fPart = result.mantissa;
-        expo = result.exponent;
-
-        for (i=0; i<300 && fPart != java.lang.Math.floor(fPart) ; i++) { fPart *= 2.0; expo--; }
-
-        outNumerator = (long) fPart;
-        lExpo = 1L << java.lang.Math.abs((long) expo);
-        if (expo > 0) {
-            outNumerator *= lExpo;
-            outDenominator = 1;
-        }
-        else { outDenominator = lExpo; }
-
-        return outDenominator;
-    }
-    long j = 0;
-    long N = 0;
-    long N2 = 0;
-    int i = 0;
-	
-    private void checkDifficultyTransitions_V2(StoredBlock storedPrev, Block nextBlock) throws BlockStoreException, VerificationException {
+    
+     private void checkDifficultyTransitions_V2(StoredBlock storedPrev, Block nextBlock) throws BlockStoreException, VerificationException {
         final long      	BlocksTargetSpacing			= 180; // 3 minutes
         int         		TimeDaySeconds				= 60 * 60 * 24;
         long				PastSecondsMin				= TimeDaySeconds *3 / 10;
@@ -1030,8 +914,8 @@ public abstract class AbstractBlockChain {
         bnNew = bnNew.divide(BigInteger.valueOf(nTargetTimespan));
         verifyDifficulty(bnNew, nextBlock);
     }
-
-   private void KimotoGravityWell(StoredBlock storedPrev, Block nextBlock, long TargetBlocksSpacingSeconds, long PastBlocksMin, long PastBlocksMax)  throws BlockStoreException, VerificationException {
+    
+    private void KimotoGravityWell(StoredBlock storedPrev, Block nextBlock, long TargetBlocksSpacingSeconds, long PastBlocksMin, long PastBlocksMax)  throws BlockStoreException, VerificationException {
 	/* current difficulty formula, megacoin - kimoto gravity well */
         //const CBlockIndex  *BlockLastSolved				= pindexLast;
         //const CBlockIndex  *BlockReading				= pindexLast;
@@ -1143,86 +1027,7 @@ public abstract class AbstractBlockChain {
         verifyDifficulty(newDifficulty, nextBlock);
 
     }
-
-    private void KimotoGravityWell_N(StoredBlock storedPrev, Block nextBlock, long TargetBlocksSpacingSeconds, long PastBlocksMin, long PastBlocksMax)  throws BlockStoreException, VerificationException {
-	/* current difficulty formula, megacoin - kimoto gravity well */
-        //const CBlockIndex  *BlockLastSolved				= pindexLast;
-        //const CBlockIndex  *BlockReading				= pindexLast;
-        //const CBlockHeader *BlockCreating				= pblock;
-        StoredBlock         BlockLastSolved             = storedPrev;
-        StoredBlock         BlockReading                = storedPrev;
-        Block               BlockCreating               = nextBlock;
-
-        /*
-        BlockCreating				= BlockCreating;
-
-        long				PastBlocksMass				= 0;
-        long				PastRateActualSeconds		= 0;
-        long				PastRateTargetSeconds		= 0;
-        double				PastRateAdjustmentRatio		= 1f;
-        BigInteger			PastDifficultyAverage = BigInteger.valueOf(0);
-        BigInteger			PastDifficultyAveragePrev = BigInteger.valueOf(0);;
-        double				EventHorizonDeviation;
-        double				EventHorizonDeviationFast;
-        double				EventHorizonDeviationSlow;
-        */
-        long start = System.currentTimeMillis();
-        long endLoop = 0;
-
-        if (BlockLastSolved == null || BlockLastSolved.getHeight() == 0 || (long)BlockLastSolved.getHeight() < PastBlocksMin)
-        { verifyDifficulty(params.getProofOfWorkLimit(), nextBlock); }
-
-        int i = 0;
-        //log.info("KGW: i = {}; height = {}; hash {} ", i, BlockReading.getHeight(), BlockReading.getHeader().getHashAsString());
-
-        long totalCalcTime = 0;
-        long totalReadtime = 0;
-        long totalBigIntTime = 0;
-
-        //int init_result = kgw.KimotoGravityWell_init(TargetBlocksSpacingSeconds, PastBlocksMin, PastBlocksMax, 144d);
-	int init_result = kgw.KimotoGravityWell_init(TargetBlocksSpacingSeconds, PastBlocksMin, PastBlocksMax, 28.8);
-
-        for (i = 1; BlockReading != null && BlockReading.getHeight() > 0; i++) {
-            long startLoop = System.currentTimeMillis();
-            int result = kgw.KimotoGravityWell_loop(i, BlockReading.getHeader().getDifficultyTargetAsInteger().toByteArray(),BlockReading.getHeight(), BlockReading.getHeader().getTimeSeconds(), BlockLastSolved.getHeader().getTimeSeconds());
-
-            //if(i == 1)
-                //log.info("KGW-N: difficulty of i=1:%x->{}",  BlockReading.getHeader().getDifficultyTarget(), BlockReading.getHeader().getDifficultyTargetAsInteger().toString(16));
-            //    log.info("KGW-N: difficulty of i=1: " + BlockReading.getHeader().getDifficultyTarget() + "->" + BlockReading.getHeader().getDifficultyTargetAsInteger().toString(16));
-            if(result == 1)
-                break;
-            if(result == 2)
-                return;
-            
-            long calcTime = System.currentTimeMillis();
-            StoredBlock BlockReadingPrev = blockStore.get(BlockReading.getHeader().getPrevBlockHash());
-            if (BlockReadingPrev == null)
-            {
-                //If this is triggered, then we are using checkpoints and haven't downloaded enough blocks to verify the difficulty.
-                //assert(BlockReading);     //from C++ code
-                //break;                    //from C++ code
-                return;
-            }
-            //log.info("KGW: i = {}; height = {}; hash {} ", i, BlockReadingPrev.getHeight(), BlockReadingPrev.getHeader().getHashAsString());
-            BlockReading = BlockReadingPrev;
-            endLoop = System.currentTimeMillis();
-            //log.info("KGW-N: i = {}; height = {}; total time {}=calc {}+read {}", i, BlockReadingPrev.getHeight(), endLoop - startLoop, calcTime - startLoop, endLoop-calcTime);
-            totalCalcTime += calcTime - startLoop;
-            totalReadtime += endLoop-calcTime;
-        }
-
-        BigInteger newDifficulty = new BigInteger(kgw.KimotoGravityWell_close());
-
-        if (newDifficulty.compareTo(params.getProofOfWorkLimit()) > 0) {
-            log.info("Difficulty hit proof of work limit: {}", newDifficulty.toString(16));
-            newDifficulty = params.getProofOfWorkLimit();
-        }
-
-
-        //log.info("KGW-N Difficulty Calculated: {}", newDifficulty.toString(16));
-        verifyDifficulty(newDifficulty, nextBlock);
-
-    }
+    
     private void KimotoGravityWell_N2(StoredBlock storedPrev, Block nextBlock, long TargetBlocksSpacingSeconds, long PastBlocksMin, long PastBlocksMax)  throws BlockStoreException, VerificationException {
 	/* current difficulty formula, megacoin - kimoto gravity well */
         //const CBlockIndex  *BlockLastSolved				= pindexLast;
@@ -1301,75 +1106,6 @@ public abstract class AbstractBlockChain {
 
     }
     
-    private void checkDifficultyTransitions_original(StoredBlock storedPrev, Block nextBlock) throws BlockStoreException, VerificationException {
-        checkState(lock.isHeldByCurrentThread());
-        Block prev = storedPrev.getHeader();
-
-        // Is this supposed to be a difficulty transition point?
-        if ((storedPrev.getHeight() + 1) % params.getInterval() != 0) {
-
-            // TODO: Refactor this hack after 0.5 is released and we stop supporting deserialization compatibility.
-            // This should be a method of the NetworkParameters, which should in turn be using singletons and a subclass
-            // for each network type. Then each network can define its own difficulty transition rules.
-            if (params.getId().equals(NetworkParameters.ID_TESTNET) && nextBlock.getTime().after(testnetDiffDate)) {
-                checkTestnetDifficulty(storedPrev, prev, nextBlock);
-                return;
-            }
-
-            // No ... so check the difficulty didn't actually change.
-            if (nextBlock.getDifficultyTarget() != prev.getDifficultyTarget())
-                throw new VerificationException("Unexpected change in difficulty at height " + storedPrev.getHeight() +
-                        ": " + Long.toHexString(nextBlock.getDifficultyTarget()) + " vs " +
-                        Long.toHexString(prev.getDifficultyTarget()));
-            return;
-        }
-
-        // We need to find a block far back in the chain. It's OK that this is expensive because it only occurs every
-        // two weeks after the initial block chain download.
-        long now = System.currentTimeMillis();
-        StoredBlock cursor = blockStore.get(prev.getHash());
-        for (int i = 0; i < params.getInterval() - 1; i++) {
-            if (cursor == null) {
-                // This should never happen. If it does, it means we are following an incorrect or busted chain.
-                throw new VerificationException(
-                        "Difficulty transition point but we did not find a way back to the genesis block.");
-            }
-            cursor = blockStore.get(cursor.getHeader().getPrevBlockHash());
-        }
-        long elapsed = System.currentTimeMillis() - now;
-        if (elapsed > 50)
-            log.info("Difficulty transition traversal took {}msec", elapsed);
-
-        Block blockIntervalAgo = cursor.getHeader();
-        int timespan = (int) (prev.getTimeSeconds() - blockIntervalAgo.getTimeSeconds());
-        // Limit the adjustment step.
-        final int targetTimespan = params.getTargetTimespan();
-        if (timespan < targetTimespan / 4)
-            timespan = targetTimespan / 4;
-        if (timespan > targetTimespan * 4)
-            timespan = targetTimespan * 4;
-
-        BigInteger newDifficulty = Utils.decodeCompactBits(prev.getDifficultyTarget());
-        newDifficulty = newDifficulty.multiply(BigInteger.valueOf(timespan));
-        newDifficulty = newDifficulty.divide(BigInteger.valueOf(targetTimespan));
-
-        if (newDifficulty.compareTo(params.getProofOfWorkLimit()) > 0) {
-            log.info("Difficulty hit proof of work limit: {}", newDifficulty.toString(16));
-            newDifficulty = params.getProofOfWorkLimit();
-        }
-
-        int accuracyBytes = (int) (nextBlock.getDifficultyTarget() >>> 24) - 3;
-        BigInteger receivedDifficulty = nextBlock.getDifficultyTargetAsInteger();
-
-        // The calculated difficulty is to a higher precision than received, so reduce here.
-        BigInteger mask = BigInteger.valueOf(0xFFFFFFL).shiftLeft(accuracyBytes * 8);
-        newDifficulty = newDifficulty.and(mask);
-
-        if (newDifficulty.compareTo(receivedDifficulty) != 0)
-            throw new VerificationException("Network provided difficulty bits do not match what was calculated: " +
-                    receivedDifficulty.toString(16) + " vs " + newDifficulty.toString(16));
-    }
-
     private void checkTestnetDifficulty(StoredBlock storedPrev, Block prev, Block next) throws VerificationException, BlockStoreException {
         checkState(lock.isHeldByCurrentThread());
         // After 15th February 2012 the rules on the testnet change to avoid people running up the difficulty
